@@ -1,11 +1,14 @@
 import pygame
 from .. import tools, setup
 from .. import constants as C
+import json
+import os
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, name):
         pygame.sprite.Sprite.__init__(self)
         self.name = name
+        self.load_data()
         self.setup_states()
         self.setup_velocities()
         self.setup_timers()
@@ -15,7 +18,16 @@ class Player(pygame.sprite.Sprite):
         self.img = self.frames[self.frame_index]
         self.rect = self.img.get_rect()
 
+    # load player data from json files
+    def load_data(self):
+        file_name = self.name + '.json'
+        file_path = os.path.join('source/data/player', file_name)
+        with open(file_path) as f:
+            self.player_data = json.load(f)
+
+
     def setup_states(self):
+        self.state = 'walk'
         self.forward = True # If the figure is moving forward
         self.dead = False
         self.big = False
@@ -30,24 +42,39 @@ class Player(pygame.sprite.Sprite):
 
     def load_images(self):
         figure = setup.GRAPHICS['mario_bros']
+        frame_rects = self.player_data['image_frames']
 
-        self.right_frames = []
-        self.left_frames = []
-        self.up_frames = []
-        self.down_frames = []
+        self.right_small_normal_frames = []
+        self.right_big_normal_frames = []
+        self.right_big_fire_frames = []
+        self.left_small_normal_frames = []
+        self.left_big_normal_frames = []
+        self.left_big_fire_frames = []
 
-        frame_rects = [(178, 32, 12, 16), (80, 32, 15, 16), (96, 32, 16, 16), (112, 32, 16, 16)]
+        self.small_normal_frames = [self.right_small_normal_frames, self.left_small_normal_frames]
+        self.big_normal_frames = [self.right_big_normal_frames, self.left_big_normal_frames]
+        self.big_fire_frames = [self.right_big_fire_frames, self.left_big_fire_frames]
 
-        for r in frame_rects:
-            right_img = tools.get_image(figure, *r, (0, 0, 0), C.BACKGROUND_MULTI)
-            left_img = pygame.transform.flip(right_img, True, False)
-            up_img = pygame.transform.rotate(right_img, 90)
-            down_img = pygame.transform.rotate(right_img, -90)
-            # add img to the list
-            self.right_frames.append(right_img)
-            self.left_frames.append(left_img)
-            self.up_frames.append(up_img)
-            self.down_frames.append(down_img)
+        self.all_frames = [self.right_small_normal_frames, self.right_big_normal_frames, self.right_big_fire_frames, self.left_small_normal_frames, self.left_big_normal_frames, self.left_big_fire_frames]
+
+        # default frames
+        self.right_frames = self.right_small_normal_frames
+        self.left_frames = self.left_small_normal_frames
+
+        for group, group_frame_rects in frame_rects.items():
+            for frame_rect in group_frame_rects:
+                right_img = tools.get_image(figure, frame_rect['x'], frame_rect['y'], frame_rect['width'], frame_rect['height'], (0, 0, 0), C.PLAYER_MULTI)
+                left_img = pygame.transform.flip(right_img, True, False)
+
+                if group == 'right_small_normal':
+                    self.right_small_normal_frames.append(right_img)
+                    self.left_small_normal_frames.append(left_img)
+                if group == 'right_big_normal':
+                    self.right_big_normal_frames.append(right_img)
+                    self.left_big_normal_frames.append(left_img)
+                if group == 'right_big_fire':
+                    self.right_big_fire_frames.append(right_img)
+                    self.left_big_fire_frames.append(left_img)
 
         # self.frames.append(tools.get_image(figure, 178, 32, 12, 16, (0, 0, 0), C.BACKGROUND_MULTI))
 
@@ -59,25 +86,27 @@ class Player(pygame.sprite.Sprite):
     def update(self, keys):
         self.current_time = pygame.time.get_ticks()
         if keys[pygame.K_RIGHT]:
+            self.state = 'walk'
             self.vx = 5
             self.vy = 0
             self.frames = self.right_frames
         if keys[pygame.K_LEFT]:
+            self.state = 'walk'
             self.vx = -5
             self.vy = 0
             self.frames = self.left_frames
-        if keys[pygame.K_UP]:
-            self.vx = 0
+
+        # jump
+        if keys[pygame.K_SPACE]:
+            self.state = 'jump'
             self.vy = -5
-            self.frames = self.up_frames
-        if keys[pygame.K_DOWN]:
-            self.vx = 0
-            self.vy = 5
-            self.frames = self.down_frames
 
         # change picture every 100ms
-        if self.current_time - self.walking_timer > 100:
-            self.walking_timer = self.current_time
-            self.frame_index += 1
-            self.frame_index %= 4
+        if self.state == 'walk':
+            if self.current_time - self.walking_timer > 100:
+                self.walking_timer = self.current_time
+                self.frame_index += 1
+                self.frame_index %= 4
+        if self.state == 'jump':
+            self.frame_index = 4
         self.img = self.frames[self.frame_index]

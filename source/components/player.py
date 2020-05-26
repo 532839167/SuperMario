@@ -33,8 +33,22 @@ class Player(pygame.sprite.Sprite):
         self.big = False
 
     def setup_velocities(self):
+        speed = self.player_data['speed']
         self.vx = 0
         self.vy = 0
+
+        self.max_walk_speed = speed['max_walk_speed']
+        self.max_run_speed = speed['max_run_vel']
+        self.max_y_speed = speed['max_y_velocity']
+        self.jump_speed = speed['jump_velocity']
+        self.walk_accel = speed['walk_accel']
+        self.turn_accel = speed['turn_accel']
+        self.run_accel = speed['run_accel']
+        self.gravity = C.GRAVITY
+
+        self.max_x_speed = self.max_walk_speed
+        self.x_accel = self.walk_accel
+
 
     def setup_timers(self):
         self.walking_timer = 0

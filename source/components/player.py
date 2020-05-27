@@ -14,9 +14,9 @@ class Player(pygame.sprite.Sprite):
         self.setup_timers()
         self.load_images()
 
-        self.frame_index = 0
-        self.img = self.frames[self.frame_index]
-        self.rect = self.img.get_rect()
+        # self.frame_index = 0
+        # self.img = self.frames[self.frame_index]
+        # self.rect = self.img.get_rect()
 
     # load player data from json files
     def load_data(self):
@@ -27,7 +27,7 @@ class Player(pygame.sprite.Sprite):
 
 
     def setup_states(self):
-        self.state = 'walk'
+        self.state = 'stand'
         self.forward = True # If the figure is moving forward
         self.dead = False
         self.big = False
@@ -38,7 +38,7 @@ class Player(pygame.sprite.Sprite):
         self.vy = 0
 
         self.max_walk_speed = speed['max_walk_speed']
-        self.max_run_speed = speed['max_run_vel']
+        self.max_run_speed = speed['max_run_speed']
         self.max_y_speed = speed['max_y_velocity']
         self.jump_speed = speed['jump_velocity']
         self.walk_accel = speed['walk_accel']
@@ -99,28 +99,75 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, keys):
         self.current_time = pygame.time.get_ticks()
+        self.states_actions(keys)
+
+    def states_actions(self, keys):
+        if self.state == 'stand':
+            self.stand(keys)
+        elif self.state == 'walk':
+            self.walk(keys)
+        elif self.state == 'jump':
+            self.jump(keys)
+
+        if self.forward:
+            self.img = self.right_frames[self.frame_index]
+        else:
+            self.img = self.left_frames[self.frame_index]
+
+    def stand(self, keys):
+        # speed set to 0
+        self.frame_index = 0
+        self.vx = 0
+        self.vy = 0
         if keys[pygame.K_RIGHT]:
+            self.forward = True
             self.state = 'walk'
-            self.vx = 5
-            self.vy = 0
-            self.frames = self.right_frames
-        if keys[pygame.K_LEFT]:
+        elif keys[pygame.K_LEFT]:
+            self.forward = False
             self.state = 'walk'
-            self.vx = -5
-            self.vy = 0
-            self.frames = self.left_frames
 
-        # jump
-        if keys[pygame.K_SPACE]:
-            self.state = 'jump'
-            self.vy = -5
+    def walk(self, keys):
+        self.max_x_speed = self.max_walk_speed
+        self.x_accel = self.walk_accel
 
-        # change picture every 100ms
-        if self.state == 'walk':
-            if self.current_time - self.walking_timer > 100:
-                self.walking_timer = self.current_time
+        # [1, 3]
+        if self.current_time - self.walking_timer > 100:
+            if self.frame_index < 3:
                 self.frame_index += 1
-                self.frame_index %= 4
-        if self.state == 'jump':
-            self.frame_index = 4
-        self.img = self.frames[self.frame_index]
+            else:
+                self.frame_index = 1
+            self.walking_timer = self.current_time
+
+        if keys[pygame.K_RIGHT]:
+            self.forward = True
+            if self.vx < 0:
+                # Mario is moving backwards
+                self.frame_index = 5
+                self.x_accel = self.turn_accel
+            self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, True)
+        elif keys[pygame.K_LEFT]:
+            self.forward = False
+            if self.vx > 0:
+                self.frame_index = 5
+                self.x_accel = self.turn_accel
+            self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, False)
+        else:
+            if self.forward:
+                self.vx -= self.x_accel
+                if self.vx < 0:
+                    self.vx = 0
+                    self.state = 'stand'
+            else:
+                self.vx += self.x_accel
+                if self.vx > 0:
+                    self.vx = 0
+                    self.state = 'stand'
+
+    def jump(self, keys):
+        pass
+
+    def calc_vel(self, vel, accel, max_vel, is_positive = True):
+        if is_positive:
+            return min(vel + accel, max_vel)
+        else:
+            return max(vel - accel, -max_vel)

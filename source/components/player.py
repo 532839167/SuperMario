@@ -127,11 +127,17 @@ class Player(pygame.sprite.Sprite):
             self.state = 'walk'
 
     def walk(self, keys):
-        self.max_x_speed = self.max_walk_speed
-        self.x_accel = self.walk_accel
+
+        # press s to sprint
+        if keys[pygame.K_s]:
+            self.max_x_speed = self.max_run_speed
+            self.x_accel = self.run_accel
+        else:
+            self.max_x_speed = self.max_walk_speed
+            self.x_accel = self.walk_accel
 
         # [1, 3]
-        if self.current_time - self.walking_timer > 100:
+        if self.current_time - self.walking_timer > self.calc_frame_duration():
             if self.frame_index < 3:
                 self.frame_index += 1
             else:
@@ -171,3 +177,8 @@ class Player(pygame.sprite.Sprite):
             return min(vel + accel, max_vel)
         else:
             return max(vel - accel, -max_vel)
+
+    # 根据当前速度计算切换帧的频率（摆臂的频率）
+    def calc_frame_duration(self):
+        duration = -60 / self.max_run_speed * abs(self.vx) + 80
+        return duration

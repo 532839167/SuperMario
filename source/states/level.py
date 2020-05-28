@@ -30,6 +30,10 @@ class Level:
 
     def move_player(self):
         self.player.rect.x += self.player.vx
+        if self.player.rect.x < 0:
+            self.player.rect.x = 0
+        if self.player.rect.x > C.SCREEN_W - 16*C.PLAYER_MULTI:
+            self.player.rect.x = C.SCREEN_W - 16*C.PLAYER_MULTI
         self.player.rect.y += self.player.vy
 
     def draw(self, surface):

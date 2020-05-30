@@ -31,6 +31,7 @@ class Player(pygame.sprite.Sprite):
         self.forward = True # If the figure is moving forward
         self.dead = False
         self.big = False
+        self.can_jump = True
 
     def setup_velocities(self):
         speed = self.player_data['speed']
@@ -45,6 +46,7 @@ class Player(pygame.sprite.Sprite):
         self.turn_accel = speed['turn_accel']
         self.run_accel = speed['run_accel']
         self.gravity = C.GRAVITY
+        self.anti_gravity = C.ANTI_GRAVITY
 
         self.max_x_speed = self.max_walk_speed
         self.x_accel = self.walk_accel
@@ -102,17 +104,26 @@ class Player(pygame.sprite.Sprite):
         self.states_actions(keys)
 
     def states_actions(self, keys):
+
+        self.can_jump_or_not(keys)
+
         if self.state == 'stand':
             self.stand(keys)
         elif self.state == 'walk':
             self.walk(keys)
         elif self.state == 'jump':
             self.jump(keys)
+        elif self.state == 'fall':
+            self.fall(keys)
 
         if self.forward:
             self.img = self.right_frames[self.frame_index]
         else:
             self.img = self.left_frames[self.frame_index]
+
+    def can_jump_or_not(self, keys):
+        if not keys[pygame.K_SPACE]:
+            self.can_jump = True
 
     def stand(self, keys):
         # speed set to 0
@@ -125,6 +136,9 @@ class Player(pygame.sprite.Sprite):
         elif keys[pygame.K_LEFT]:
             self.forward = False
             self.state = 'walk'
+        elif keys[pygame.K_SPACE] and self.can_jump:
+            self.state = 'jump'     # press space to jump
+            self.vy = self.jump_speed
 
     def walk(self, keys):
 
@@ -135,6 +149,10 @@ class Player(pygame.sprite.Sprite):
         else:
             self.max_x_speed = self.max_walk_speed
             self.x_accel = self.walk_accel
+
+        if keys[pygame.K_SPACE] and self.can_jump:
+            self.state = 'jump'
+            self.vy = self.jump_speed
 
         # [1, 3]
         if self.current_time - self.walking_timer > self.calc_frame_duration():
@@ -170,7 +188,37 @@ class Player(pygame.sprite.Sprite):
                     self.state = 'stand'
 
     def jump(self, keys):
-        pass
+        self.frame_index = 4
+        self.vy += self.anti_gravity  # 跳起时 y 速度的变化
+        self.can_jump = False
+
+        if self.vy >= 0:         # start to fall
+            self.state = 'fall'
+
+        # move horizontally while jumping
+        if keys[pygame.K_RIGHT]:
+            self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, True)
+        elif keys[pygame.K_LEFT]:
+            self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, False)
+
+        if not keys[pygame.K_SPACE]:
+            self.state = 'fall'
+
+    def fall(self, keys):
+        self.vy = self.calc_vel(self.vy, self.gravity, self.max_y_speed)
+
+        # fall on the ground
+        if self.rect.bottom > C.GROUNG_HEIGHT:  # Maria is lower than ground level
+            self.rect.bottom = C.GROUNG_HEIGHT
+            self.vy = 0
+            self.state = 'walk'
+
+        # move horizontally while jumping
+        if keys[pygame.K_RIGHT]:
+            self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, True)
+        elif keys[pygame.K_LEFT]:
+            self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, False)
+
 
     def calc_vel(self, vel, accel, max_vel, is_positive = True):
         if is_positive:

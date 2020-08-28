@@ -55,6 +55,7 @@ class Player(pygame.sprite.Sprite):
     def setup_timers(self):
         self.walking_timer = 0
         self.transition_timer = 0
+        self.death_timer = 0
 
     def load_images(self):
         figure = setup.GRAPHICS['mario_bros']
@@ -115,6 +116,8 @@ class Player(pygame.sprite.Sprite):
             self.jump(keys)
         elif self.state == 'fall':
             self.fall(keys)
+        elif self.state == 'die':
+            self.die(keys)
 
         if self.forward:
             self.img = self.right_frames[self.frame_index]
@@ -207,11 +210,11 @@ class Player(pygame.sprite.Sprite):
     def fall(self, keys):
         self.vy = self.calc_vel(self.vy, self.gravity, self.max_y_speed)
 
-        # fall on the ground
-        if self.rect.bottom > C.GROUNG_HEIGHT:  # Maria is lower than ground level
-            self.rect.bottom = C.GROUNG_HEIGHT
-            self.vy = 0
-            self.state = 'walk'
+        # # fall on the ground
+        # if self.rect.bottom > C.GROUNG_HEIGHT:  # Maria is lower than ground level
+        #     self.rect.bottom = C.GROUNG_HEIGHT
+        #     self.vy = 0
+        #     self.state = 'walk'
 
         # move horizontally while jumping
         if keys[pygame.K_RIGHT]:
@@ -219,6 +222,16 @@ class Player(pygame.sprite.Sprite):
         elif keys[pygame.K_LEFT]:
             self.vx = self.calc_vel(self.vx, self.x_accel, self.max_x_speed, False)
 
+    def die(self, keys):
+        self.rect.y += self.vy
+        self.vy += self.anti_gravity
+
+    def set_die(self):
+        self.dead = True
+        self.vy = self.jump_speed
+        self.frame_index = 6
+        self.state = 'die'
+        self.death_timer = self.current_time
 
     def calc_vel(self, vel, accel, max_vel, is_positive = True):
         if is_positive:

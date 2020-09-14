@@ -1,13 +1,15 @@
 import pygame
 from .. import tools, setup
 from .. import constants as C
+from .powerup import create_powerup
 
 class Brick(pygame.sprite.Sprite):
-    def __init__(self, x, y, brick_type, color=None, name='brick'):
+    def __init__(self, x, y, brick_type, group, color=None, name='brick'):
         pygame.sprite.Sprite.__init__(self)
         self.x = x
         self.y = y
         self.brick_type = brick_type
+        self.group = group
         self.name = name
         bright_frame_rects = [(16, 0, 16, 16), (48, 0, 16, 16)]
         dark_frame_rects = [(16, 32, 16, 16), (48, 32, 16, 16)]
@@ -58,7 +60,14 @@ class Brick(pygame.sprite.Sprite):
 
         if self.rect.y > self.y: # if the current y of the box > original y
             self.rect.y = self.y
-            self.state = 'rest'
+
+            if self.brick_type == 0:
+                self.state = 'rest'
+            elif self.brick_type == 1:
+                self.state = 'open'
+            else:
+                self.group.add(create_powerup(self.rect.centerx, self.rect.centery, self.brick_type))
 
     def open(self):
-        pass
+        self.frame_index = 1
+        self.image = self.frames[self.frame_index]

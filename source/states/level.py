@@ -57,23 +57,33 @@ class Level:
     def set_bricks_n_boxes(self):
         self.brick_group = pygame.sprite.Group()
         self.box_group = pygame.sprite.Group()
+        self.coin_group = pygame.sprite.Group()
+        self.powerup_group = pygame.sprite.Group()
 
         if 'brick' in self.map_data:
             for brick_data in self.map_data['brick']:
                 x, y = brick_data['x'], brick_data['y']
                 brick_type = brick_data['type']
-                if 'brick_num' in brick_data:
-                    # batch bricks
-                    pass
+                if brick_type == 0:
+                    if 'brick_num' in brick_data:
+                        # batch bricks
+                        pass
+                    else:
+                        self.brick_group.add(brick.Brick(x, y, brick_type, None))
+                elif brick_type == 1:
+                    self.brick_group.add(brick.Brick(x, y, brick_type, self.coin_group))
                 else:
-                    self.brick_group.add(brick.Brick(x, y, brick_type))
+                    self.brick_group.add(brick.Brick(x, y, brick_type, self.powerup_group))
 
         if 'box' in self.map_data:
             for box_data in self.map_data['box']:
                 x, y = box_data['x'], box_data['y']
                 box_type = box_data['type']
 
-                self.box_group.add(box.Box(x, y, box_type))
+                if box_type == 1:
+                    self.box_group.add(box.Box(x, y, box_type, self.coin_group))
+                else:
+                    self.box_group.add(box.Box(x, y, box_type, self.powerup_group))
 
     def set_enemies(self):
         self.dead_enemy_group = pygame.sprite.Group()
@@ -115,6 +125,8 @@ class Level:
             self.enemy_group.update(self)
             self.dead_enemy_group.update(self)
             self.koopa_group.update(self)
+            self.coin_group.update()
+            self.powerup_group.update(self)
 
         self.draw(surface)
 
@@ -157,6 +169,12 @@ class Level:
                 koopa.rect.x += -40
                 koopa.direction = 0
             koopa.state = 'slide'
+
+        powerup = pygame.sprite.spritecollideany(self.player, self.powerup_group)
+        if powerup:
+            powerup.kill()
+            if powerup.name == 'mushroom':
+                self.player.state = 'small2big'
 
     def check_y_collisions(self):
         # check_group = pygame.sprite.Group(self.ground_items_group, self.brick_group, self.box_group)
@@ -248,11 +266,14 @@ class Level:
     def draw(self, surface):
         self.game_scene.blit(self.background, self.game_window, self.game_window)
         self.game_scene.blit(self.player.img, self.player.rect)
+        self.powerup_group.draw(self.game_scene)
         self.brick_group.draw(self.game_scene)
         self.box_group.draw(self.game_scene)
         self.enemy_group.draw(self.game_scene)
         self.dead_enemy_group.draw(self.game_scene)
         self.koopa_group.draw(self.game_scene)
+        self.coin_group.draw(self.game_scene)
+
 
         surface.blit(self.game_scene, (0, 0), self.game_window)
         self.info.draw(surface)

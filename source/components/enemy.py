@@ -108,6 +108,13 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect.left = collided.rect.right
             self.vx *= -1
 
+        if self.state == 'slide':
+            enemy = pygame.sprite.spritecollideany(self, level.enemy_group)
+            if enemy:
+                enemy.set_die(how='slided')
+                level.enemy_group.remove(enemy)
+                level.dead_enemy_group(enemy)
+
     def check_y_collisions(self, level):
         obstacles = pygame.sprite.Group(level.ground_items_group, level.brick_group, level.box_group)
         collided = pygame.sprite.spritecollideany(self, obstacles)

@@ -114,6 +114,8 @@ class Level:
                 # dead over 3 seconds, finish game
                 self.finished = True
                 self.update_game_info()
+        elif self.is_frozen():
+            pass
         else:
             self.move_player()
             self.check_checkpoints()
@@ -129,6 +131,9 @@ class Level:
             self.powerup_group.update(self)
 
         self.draw(surface)
+
+    def is_frozen(self):
+        return self.player.state in ['small2big', 'big2small', 'big2fire', 'fire2small']
 
     def move_player(self):
         self.player.rect.x += self.player.vx
@@ -252,7 +257,7 @@ class Level:
         sprite.rect.y += 1
         check = pygame.sprite.Group(self.ground_items_group, self.brick_group, self.box_group)
         collided = pygame.sprite.spritecollideany(sprite, check)
-        if not collided and sprite.state != 'jump':
+        if not collided and sprite.state != 'jump' and not self.is_frozen():
             sprite.state = 'fall'
         sprite.rect.y -= 1
 
